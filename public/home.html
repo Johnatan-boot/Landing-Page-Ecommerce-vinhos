@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Vinhos Premium - Pedidos</title>
+<link rel="stylesheet" href="home.css">
+
+<style>
+  /* --- Estilo principal (mantendo sua paleta) --- */
+  :root{ --bg:#f5f0eb; --accent:#a60f2d; --muted:#7b5a5a; --card:#fff; }
+  html { scroll-behavior: smooth; } /* scroll suave */
+  body { margin:0; font-family: Arial, sans-serif; background:var(--bg); color:#3b1e1e; }
+  header {
+    /* mantive seu linear-gradient + imagem */
+    background: linear-gradient(to right, rgba(60,20,20,0.8), rgba(80,0,40,0.8)),
+      url('https://images.pexels.com/photos/3019019/pexels-photo-3019019.jpeg') no-repeat center/cover;
+    height: 80vh; min-height:420px;
+    display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; color:#fff;
+    padding: 30px 20px;
+    position:relative; overflow:hidden;
+    /* animações (background desliza e header card entra da esquerda) */
+    background-position: -30% center;
+    transform: translateX(-28px);
+    opacity: 0;
+    animation: bgSlide 1.1s ease-out forwards, headerSlide 0.9s ease-out 0.12s forwards;
+  }
+
+  /* botão "Restrito" no canto superior direito */
+  .restrict-btn{
+    position:absolute;
+    top:18px;
+    right:18px;
+    z-index:30;
+    background: #d62445;
+    color:#fff;
+    padding:8px 14px;
+    border-radius:999px;
+    border:1px solid rgba(255,255,255,0.12);
+    text-decoration:none;
+    font-weight:700;
+    backdrop-filter: blur(4px);
+    transition: transform .18s ease, background .18s ease;
+  }
+  .restrict-btn:hover{ transform: translateY(-3px); background: rgba(0,0,0,0.55); }
+
+  @keyframes bgSlide {
+    from { background-position: -30% center; }
+    to   { background-position: center center; }
+  }
+  @keyframes headerSlide {
+    from { transform: translateX(-28px); opacity:0; }
+    to   { transform: translateX(0); opacity:1; }
+  }
+
+  header h1{ font-size:2.6rem; margin-bottom:10px; }
+  header p{ font-size:1.05rem; max-width:720px; margin-bottom:18px; }
+  .cta-btn{ background:var(--accent); color:#fff; padding:12px 26px; border-radius:50px; text-decoration:none; display:inline-block; }
+  .cta-btn:hover{ background:#d62445; }
+
+  .products{ padding:40px 18px; max-width:1200px; margin: auto; display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:18px; }
+  .card{ background:#fff; border-radius:10px; overflow:hidden; box-shadow:0 6px 16px rgba(0,0,0,0.08); text-align:center; }
+  .card img{ width:100%; height:200px; object-fit:cover; display:block; }
+  .card h3{ padding:12px 10px; color:#3b1e1e; }
+  .whatsapp-btn{ background:#25d366; color:#fff; border:0; padding:10px 18px; margin:12px; border-radius:8px; cursor:pointer; }
+  .whatsapp-btn:hover{ background:#1ebe5b; }
+
+  /* Form */
+  #pedido-form { max-width:720px; margin:40px auto 24px; background:#fff; padding:22px; border-radius:12px; box-shadow:0 8px 20px rgba(0,0,0,0.06); }
+  #pedido-form h2{ text-align:center; margin-top:0; color:#3b1e1e; }
+  .form-row{ display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:12px; margin-bottom:12px; }
+  label{ display:block; font-weight:600; color:#5c3a3a; margin-bottom:6px; }
+  input, select, textarea { width:100%; padding:10px 12px; border:1.5px solid #e6d7d7; border-radius:8px; font-size:1rem; box-sizing:border-box; }
+  textarea{ min-height:90px; resize:vertical; }
+  .form-actions{ display:flex; gap:12px; margin-top:8px; flex-wrap:wrap; }
+  button[type="submit"]{ background:var(--accent); color:#fff; padding:12px 18px; border-radius:50px; border:0; cursor:pointer; font-weight:700; flex:1; min-width:160px; }
+  button[type="button"]{ background:#6e2c2c; color:#fff; padding:10px 16px; border-radius:8px; border:0; cursor:pointer; }
+  .small-muted{ font-size:0.9rem; color:var(--muted); }
+
+  #msg-sucesso{ display:none; color:green; font-weight:700; text-align:center; margin-top:12px; }
+
+  /* --- Seção do login (adicionada) --- */
+  #login-section { padding: 40px 18px 80px; background: transparent; }
+  .login-card {
+    max-width:420px;
+    margin: 18px auto;
+    background:#fff;
+    padding:22px;
+    border-radius:12px;
+    box-shadow:0 12px 30px rgba(0,0,0,0.10);
+    transform: translateY(24px);
+    opacity:0;
+    transition: transform .6s cubic-bezier(.2,.9,.2,1), opacity .6s ease;
+  }
+  .login-card.in-view { transform: translateY(0); opacity:1; }
+  .login-card h3{ margin:0 0 10px 0; color:#3b1e1e; text-align:center; }
+  .form-field{ margin-bottom:12px; }
+  .form-field input{
+    width:100%; padding:12px 14px; border-radius:10px; border:1.5px solid #e6d7d7; font-size:1rem;
+    transition: border-color .18s ease, box-shadow .18s ease;
+  }
+  .form-field input:focus{ outline:none; border-color:var(--accent); box-shadow: 0 10px 24px rgba(166,15,45,0.08); }
+  .login-actions{ margin-top:8px; }
+  .login-actions button{ width:100%; padding:12px; border-radius:50px; border:0; background:var(--accent); color:#fff; font-weight:700; cursor:pointer; }
+  .login-help{ text-align:center; margin-top:10px; font-size:0.9rem; color:var(--muted); }
+  .login-error{ display:none; color:#b92424; text-align:center; margin-top:10px; font-weight:700; }
+
+  @media (max-width:600px){
+    header h1{ font-size:1.7rem; }
+    header p{ font-size:0.95rem; }
+    .restrict-btn{ top:12px; right:12px; padding:7px 12px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <!-- BOTÃO RESTRITO (no canto superior direito) -->
+  <a href="#login-section" class="restrict-btn" id="restrictBtn" aria-label="Acesso restrito">Restrito</a>
+
+  <h1>Vinhos Premium Direto da Vinícola Luciana</h1>
+  <p>Rótulos selecionados, atendimento personalizado. Peça seu vinho — preencha o pedido abaixo ou fale conosco no WhatsApp.</p>
+  <a href="#produtos" class="cta-btn">Quero Conhecer</a>
+</header>
+
+<!-- CONTAINER DE VÍDEO -->
+<section style="max-width:1200px; margin:40px auto 0; padding:0 18px;">
+  <div style="position:relative; padding-bottom:56.25%; height:0; overflow:hidden; border-radius:12px; box-shadow:0 6px 18px rgba(0,0,0,0.15);">
+    <iframe src="https://www.youtube.com/embed/pIaDz7YlrMo?si=YigbMFXXE-iUa3Od" 
+      title="Vídeo sobre Vinhos Premium"
+      frameborder="0" 
+      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+      allowfullscreen
+      style="position:absolute; top:0; left:0; width:100%; height:100%;">
+    </iframe>
+  </div>
+</section>
+
+<!-- SEÇÃO DE PRODUTOS -->
+<section id="produtos" class="products">
+  <div class="card">
+    <img src="https://images.pexels.com/photos/774455/pexels-photo-774455.jpeg" alt="Vinho Tinto Reserva">
+    <h3>Vinho Tinto Reserva</h3>
+    <p style="padding:0 12px; font-size:0.95rem; color:#5c3a3a;">
+      Um vinho encorpado com notas de frutas vermelhas maduras e leve toque amadeirado, perfeito para carnes e massas.
+    </p>
+    <button class="whatsapp-btn" onclick="handleWhatsSaiba('Vinho Tinto Reserva')">Saiba Mais</button>
+  </div>
+  <div class="card">
+    <img src="https://images.pexels.com/photos/391213/pexels-photo-391213.jpeg" alt="Vinho Branco Seco">
+    <h3>Vinho Branco Seco</h3>
+    <p style="padding:0 12px; font-size:0.95rem; color:#5c3a3a;">
+      Fresco e equilibrado, com notas cítricas e florais, ideal para acompanhar peixes, saladas e frutos do mar.
+    </p>
+    <button class="whatsapp-btn" onclick="handleWhatsSaiba('Vinho Branco Seco')">Saiba Mais</button>
+  </div>
+  <div class="card">
+    <img src="https://images.pexels.com/photos/33265/wine-bottle-wine-glasses-wine-ambience.jpg" alt="Espumante Brut">
+    <h3>Espumante Brut</h3>
+    <p style="padding:0 12px; font-size:0.95rem; color:#5c3a3a;">
+      Leve e elegante, com perlage delicado e aroma frutado, perfeito para celebrações e harmonizações leves.
+    </p>
+    <button class="whatsapp-btn" onclick="handleWhatsSaiba('Espumante Brut')">Saiba Mais</button>
+  </div>
+</section>
+
+
+<!-- FORMULÁRIO DE PEDIDO (mantive id e conteúdo) -->
+<section id="pedido-form">
+  <h2>Formulário de Pedido</h2>
+  <form id="formPedido" autocomplete="off">
+    <div class="form-row">
+      <div>
+        <label for="nome">Nome Completo *</label>
+        <input id="nome" name="nome" type="text" required />
+      </div>
+      <div>
+        <label for="telefone">Telefone / WhatsApp *</label>
+        <input id="telefone" name="telefone" type="tel" pattern="[0-9\s\-\+\(\)]{8,20}" required placeholder="Ex: 5511999998888" />
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div>
+        <label for="email">E-mail</label>
+        <input id="email" name="email" type="email" placeholder="opcional@email.com" />
+      </div>
+      <div>
+        <label for="produto">Produto *</label>
+        <select id="produto" name="produto" required>
+          <option value="" disabled selected>Selecione o produto</option>
+          <option value="Vinho Tinto Reserva">Vinho Tinto Reserva</option>
+          <option value="Vinho Branco Seco">Vinho Branco Seco</option>
+          <option value="Espumante Brut">Espumante Brut</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div>
+        <label for="quantidade">Quantidade *</label>
+        <input id="quantidade" name="quantidade" type="number" min="1" value="1" required />
+      </div>
+      <div>
+        <label for="unitPrice">Valor unitário (R$) *</label>
+        <input id="unitPrice" name="unitPrice" type="number" min="0" step="0.01" required />
+      </div>
+    </div>
+
+    <div>
+      <label for="observacoes">Observações</label>
+      <textarea id="observacoes" name="observacoes" placeholder="Ex.: Entregar após as 18h"></textarea>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit">Enviar Pedido</button>
+      <button type="button" onclick="resetForm()">Limpar</button>
+    </div>
+
+    <div id="msg-sucesso">Pedido salvo com sucesso — obrigado! O administrador verá o pedido no painel.</div>
+    <p class="small-muted">Obs: formulário salva localmente (LocalStorage). Para múltiplos dispositivos precisamos integrar backend/Firebase.</p>
+  </form>
+</section>
+
+<!-- NOVA SEÇÃO: LOGIN (logo abaixo do formulário de pedidos) -->
+<section id="login-section" aria-labelledby="login-title">
+  <div class="login-card" id="loginCard" role="region" aria-live="polite">
+    <h3 id="login-title">Acesso Restrito</h3>
+    <form id="loginForm" autocomplete="off" novalidate>
+      <div class="form-field">
+        <label for="loginUser">Usuário</label>
+        <input id="loginUser" name="loginUser" type="text" required placeholder="nome de usuário">
+      </div>
+      <div class="form-field">
+        <label for="loginPass">Senha</label>
+        <input id="loginPass" name="loginPass" type="password" required placeholder="senha">
+      </div>
+      <div class="login-actions">
+        <button type="submit">Entrar</button>
+      </div>
+      <p class="login-help">Use credenciais de administrador para acessar o painel.</p>
+      <p class="login-error" id="loginError">Usuário ou senha inválidos</p>
+    </form>
+  </div>
+</section>
+
+<script>
+/* ------------------------------
+  Seu JS original — mantive tudo exatamente e apenas acrescentei abaixo as novas funções
+---------------------------------*/
+
+/* ------------------------------
+  Utilitários (localStorage)
+   - orders: array de pedidos
+   - transactions: array de entradas/saídas (controle financeiro manual)
+   Estrutura order:
+   { id, nome, telefone, email, produto, quantidade, unitPrice, total, observacoes, createdAt }
+---------------------------------*/
+
+function getStorageArray(key) {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) { console.error(e); return []; }
+}
+function saveStorageArray(key, arr) {
+  localStorage.setItem(key, JSON.stringify(arr));
+}
+
+/* --- Incrementadores simples (mantém compat com contador anterior) --- */
+function pegarContador(chave) {
+  const v = parseInt(localStorage.getItem(chave));
+  return Number.isNaN(v) ? 0 : v;
+}
+function salvarContador(chave, valor) { localStorage.setItem(chave, String(valor)); }
+
+/* --- Quando usuário clica "Saiba Mais" --- */
+function handleWhatsSaiba(produtoName) {
+  // incrementa interessados
+  const interessados = pegarContador('interessados') + 1;
+  salvarContador('interessados', interessados);
+  console.log('Interessados ->', interessados);
+
+  // opcional: abrir whatsapp já com mensagem e produto
+  const numero = '11977653883'; // substituir
+  const text = encodeURIComponent(`Olá! Tenho interesse no: ${produtoName}`);
+  window.open(`https://wa.me/${numero}?text=${text}`, '_blank');
+}
+
+/* --- When page loads: increment visitantes --- */
+window.addEventListener('load', () => {
+  const visitantes = pegarContador('visitantes') + 1;
+  salvarContador('visitantes', visitantes);
+  console.log('Visitantes ->', visitantes);
+
+  // preencher valor unitário automaticamente quando selecionar produto
+  setupProductPriceAutoFill();
+
+  // ao carregar, se o login-section estiver visível diretamente — anima ele
+  maybeObserveLoginCard();
+});
+
+/* --- Preencher preço automático (mapa de preços) --- */
+const PRICE_MAP = {
+  'Vinho Tinto Reserva': 89.90,
+  'Vinho Branco Seco': 79.50,
+  'Espumante Brut': 99.00
+};
+function setupProductPriceAutoFill(){
+  const prod = document.getElementById('produto');
+  const price = document.getElementById('unitPrice');
+  if(!prod || !price) return;
+  prod.addEventListener('change', () => {
+    const val = prod.value;
+    if (PRICE_MAP[val] !== undefined) {
+      price.value = PRICE_MAP[val].toFixed(2);
+    } else {
+      price.value = '';
+    }
+  });
+}
+
+/* --- Form submission: salvar order e incrementar vendas --- */
+const form = document.getElementById('formPedido');
+if(form){
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    // validação básica HTML5
+    if (!form.checkValidity()) { form.reportValidity(); return; }
+
+    const nome = form.nome.value.trim();
+    const telefone = form.telefone.value.trim();
+    const email = form.email.value.trim();
+    const produto = form.produto.value;
+    const quantidade = Math.max(1, parseInt(form.quantidade.value, 10) || 1);
+    const unitPrice = parseFloat(form.unitPrice.value) || 0;
+    const observacoes = form.observacoes.value.trim();
+    const total = Number((quantidade * unitPrice).toFixed(2));
+    const createdAt = new Date().toISOString();
+
+    const order = {
+      id: 'order_' + Date.now(),
+      nome, telefone, email, produto, quantidade, unitPrice, total, observacoes, createdAt
+    };
+
+    // salvar orders
+    const orders = getStorageArray('orders');
+    orders.unshift(order); // adiciona no topo
+    saveStorageArray('orders', orders);
+
+    // incrementar contador de vendas
+    const vendas = pegarContador('vendas') + 1;
+    salvarContador('vendas', vendas);
+
+    // opcional: também criar uma transação de entrada automática (venda)
+    const transactions = getStorageArray('transactions');
+    transactions.unshift({
+      id: 'tx_' + Date.now(),
+      type: 'entrada',
+      amount: total,
+      description: `Venda: ${produto} x${quantidade} - ${nome}`,
+      date: createdAt
+    });
+    saveStorageArray('transactions', transactions);
+
+    // feedback e limpa
+    document.getElementById('msg-sucesso').style.display = 'block';
+    setTimeout(()=> document.getElementById('msg-sucesso').style.display = 'none', 4000);
+    form.reset();
+  });
+}
+
+/* --- util: format currency BRL --- */
+function formatBRL(v) {
+  return Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
+
+/* --- debug helper (opcional) --- */
+console.log('Orders loaded:', getStorageArray('orders').length);
+console.log('Transactions loaded:', getStorageArray('transactions').length);
+
+function resetForm() { document.getElementById('formPedido').reset(); }
+
+
+/* ------------------------------
+  NOVAS FUNÇÕES RELACIONADAS AO LOGIN e SCROLL (adicionadas)
+---------------------------------*/
+
+/// Smooth scroll (link já usa href="#login-section", html{scroll-behavior:smooth} cobre a maior parte,
+/// mas adiciono um fallback para navegadores que queiram offset ou controle)
+document.getElementById('restrictBtn')?.addEventListener('click', function(e){
+  // deixa o comportamento padrão do anchor rolar suave — só evitamos jump em alguns navegadores
+  const target = document.querySelector('#login-section');
+  if(target){
+    e.preventDefault();
+    const top = target.getBoundingClientRect().top + window.pageYOffset - 20; // leve offset
+    window.scrollTo({ top, behavior: 'smooth' });
+    // garantir animação de entrada do card após scroll
+    setTimeout(()=> observeAndShowLogin(), 380);
+  }
+});
+
+/* Animação: mostra login-card quando entrar no viewport (IntersectionObserver) */
+function maybeObserveLoginCard(){
+  const card = document.getElementById('loginCard');
+  if(!card) return;
+  // se já está visível (por exemplo o usuário já rolou), adiciona classe imediatamente
+  const rect = card.getBoundingClientRect();
+  if(rect.top < window.innerHeight && rect.bottom >= 0){
+    card.classList.add('in-view');
+    return;
+  }
+  observeAndShowLogin();
+}
+function observeAndShowLogin(){
+  const card = document.getElementById('loginCard');
+  if(!card) return;
+  const obs = new IntersectionObserver((entries, o) => {
+    entries.forEach(en => {
+      if(en.isIntersecting){
+        card.classList.add('in-view');
+        o.disconnect();
+      }
+    });
+  }, { threshold: 0.18 });
+  obs.observe(card);
+}
+
+/* Lógica simples de login
+   - **ALTERE** as credenciais abaixo para as do seu sistema / ou integre sua API.
+   - por enquanto, credenciais de exemplo: usuário "admin", senha "vinho123"
+*/
+const ADMIN_CREDENTIALS = { user: 'admin', pass: 'vinho123' }; // troque conforme necessário
+const loginForm = document.getElementById('loginForm');
+if(loginForm){
+  loginForm.addEventListener('submit', function(e){
+    e.preventDefault();
+    const u = document.getElementById('loginUser').value.trim();
+    const p = document.getElementById('loginPass').value.trim();
+    const errEl = document.getElementById('loginError');
+
+    if(u === ADMIN_CREDENTIALS.user && p === ADMIN_CREDENTIALS.pass){
+      // sucesso: marcar sessão simples e redirecionar
+      localStorage.setItem('isAdmin', '1'); // marcador simples — substitua por token real se tiver backend
+      // redirecionamento: ajuste o caminho se seu painel for diferente
+      window.location.href = 'admin.html';
+    } else {
+      // erro: exibir mensagem animada
+      if(errEl){
+        errEl.style.display = 'block';
+        setTimeout(()=> errEl.style.display = 'none', 3000);
+      }
+    }
+  });
+}
+</script>
+</body>
+</html>

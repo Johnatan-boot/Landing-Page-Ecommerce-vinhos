@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Painel Administrativo - Vinhos</title>
+<link rel="stylesheet" href="home.css">
+<style>
+    :root{ --bg:#f5f0eb; --accent:#a60f2d; --muted:#7b5a5a; --card:#fff; }
+  body{ margin:0; font-family: Arial, sans-serif; background:var(--bg); color:#3b1e1e; }
+  header{ padding:20px 18px; text-align:center; }
+  header h1{ margin:0; }
+  .container{ max-width:1200px; margin:18px auto; padding:0 16px; }
+
+  /* resumo (cards) */
+  .summary{ display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:12px; margin-bottom:18px; }
+  .card{ background:var(--card); padding:16px; border-radius:10px; box-shadow:0 6px 18px rgba(0,0,0,0.06); }
+  .card h3{ margin:0 0 8px 0; font-size:1rem; color:var(--muted); }
+  .card p{ font-size:1.3rem; margin:0; font-weight:700; }
+
+  /* tabelas */
+  .panel { display:flex; gap:16px; flex-direction:column; }
+  table{ width:100%; border-collapse:collapse; margin-bottom:18px; }
+  th, td{ padding:8px 10px; border-bottom:1px solid #eee; text-align:left; font-size:0.95rem; }
+  th{ background:#faf5f5; color:#5c3a3a; }
+  .actions button{ margin-right:6px; padding:6px 8px; border-radius:6px; border:0; cursor:pointer; }
+  .btn-edit{ background:#6e2c2c; color:#fff; }
+  .btn-delete{ background:#a60f2d; color:#fff; }
+  .btn-add{ background:#25d366; color:#fff; padding:8px 12px; border-radius:8px; border:0; cursor:pointer; }
+
+  /* form modal simples */
+  .modal { position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,0.4); z-index:50; }
+  .modal .modal-body{ background:#fff; padding:18px; width:92%; max-width:720px; border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,0.3); }
+  .modal h3{ margin-top:0; }
+  .form-grid{ display:grid; gap:10px; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); }
+
+  .small-muted{ color:var(--muted); font-size:0.9rem; }
+
+  @media (max-width:700px){ th,td{font-size:0.85rem;} .summary{grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); } }
+  body {
+    font-family: Arial, sans-serif;
+    background: #f5f0eb;
+    margin: 0;
+    padding: 20px;
+  }
+  h1 {
+    text-align: center;
+    color: #3b1e1e;
+  }
+  .panel {
+    max-width: 650px;
+    margin: auto;
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+  .counter {
+    font-size: 1.5rem;
+    margin: 15px 0;
+  }
+  button {
+    padding: 10px 15px;
+    margin: 5px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .sale-btn {
+    background: #c28f2c;
+    color: white;
+  }
+  .sale-btn:hover {
+    background: #e0a938;
+  }
+  .reset-btn {
+    background: #a60f2d;
+    color: white;
+  }
+  .reset-btn:hover {
+    background: #d62445;
+  }
+
+header h1, header p {
+  opacity: 0;
+  transform: translateX(-50px);
+  animation: fadeSlideIn 1s ease-out forwards;
+  animation-delay: 0.5s; /* começa depois do fundo */
+}
+
+@keyframes fadeSlideIn {
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+
+
+
+.h1__panel, .small-muted{
+    color: #FFFFFF;
+  }
+</style>
+</head>
+<body>
+
+<h1>Painel Administrativo</h1>
+<div class="panel">
+  <div class="counter">
+    👁 Visitantes: <span id="visitantes">0</span>
+  </div>
+  <div class="counter">
+    💬 Interessados: <span id="interessados">0</span>
+  </div>
+  <div class="counter">
+    🍷 Vendas: <span id="vendas">0</span>
+  </div>
+
+  <button class="sale-btn" onclick="incrementVendas()">Registrar Venda</button>
+  <button class="reset-btn" onclick="resetContadores()">Zerar Contadores</button>
+</div>
+
+<div class="container">
+<header>
+  <h1 class="h1__panel">Painel Administrativo - Vinhos (Pedidos & Financeiro)</h1>
+  <p class="small-muted">Somente administradores — dados salvos localmente (localStorage).</p>
+</header>
+</div>
+
+
+<div class="container">
+  <!-- Resumo -->
+  <div class="summary" id="resumoCards">
+    <div class="card">
+      <h3>Vendas Hoje</h3>
+      <p id="vendasHoje">R$ 0,00</p>
+    </div>
+    <div class="card">
+      <h3>Vendas Semana</h3>
+      <p id="vendasSemana">R$ 0,00</p>
+    </div>
+    <div class="card">
+      <h3>Vendas Mês</h3>
+      <p id="vendasMes">R$ 0,00</p>
+    </div>
+    <div class="card">
+      <h3>Vendas Ano</h3>
+      <p id="vendasAno">R$ 0,00</p>
+    </div>
+    <div class="card">
+      <h3>Entradas</h3>
+      <p id="entradasTotal">R$ 0,00</p>
+    </div>
+    <div class="card">
+      <h3>Saídas</h3>
+      <p id="saidasTotal">R$ 0,00</p>
+    </div>
+    <div class="card">
+      <h3>Saldo</h3>
+      <p id="saldoTotal">R$ 0,00</p>
+    </div>
+  </div>
+
+  <!-- Botões de ação -->
+  <div style="display:flex; justify-content:space-between; gap:12px; margin-bottom:12px;">
+    <div>
+      <button class="btn-add" onclick="openOrderModal()">+ Novo Pedido</button>
+      <button class="btn-add" onclick="openTransactionModal()">+ Nova Transação</button>
+    </div>
+    <div>
+      <button onclick="exportData()" style="background:#6e2c2c;color:#fff;padding:8px 12px;border-radius:8px;border:0;cursor:pointer;">Exportar JSON</button>
+      <button onclick="clearAll()" style="background:#a60f2d;color:#fff;padding:8px 12px;border-radius:8px;border:0;cursor:pointer;">Limpar Tudo</button>
+    </div>
+  </div>
+
+  <!-- Tabela de Pedidos -->
+  <div class="panel">
+    <h2 style="margin:0 0 8px 0;">Pedidos / Vendas</h2>
+    <table id="ordersTable">
+      <thead>
+        <tr>
+          <th>Data</th><th>Cliente</th><th>Telefone</th><th>Produto</th><th>Qtd</th><th>Total</th><th>Ações</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <!-- Tabela de transações (entradas/saídas) -->
+    <h2 style="margin:0 0 8px 0;">Transações (Entradas / Saídas)</h2>
+    <table id="transactionsTable">
+      <thead>
+        <tr>
+          <th>Data</th><th>Tipo</th><th>Descrição</th><th>Valor</th><th>Ações</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- MODAL: Pedido -->
+<div id="modalOrder" class="modal">
+  <div class="modal-body">
+    <h3 id="modalOrderTitle">Novo Pedido</h3>
+    <div style="margin-top:8px;">
+      <div class="form-grid">
+        <input id="o_id" type="hidden" />
+        <div>
+          <label>Nome</label>
+          <input id="o_nome" />
+        </div>
+        <div>
+          <label>Telefone</label>
+          <input id="o_telefone" />
+        </div>
+        <div>
+          <label>E-mail</label>
+          <input id="o_email" />
+        </div>
+        <div>
+          <label>Produto</label>
+          <select id="o_produto">
+            <option>Vinho Tinto Reserva</option>
+            <option>Vinho Branco Seco</option>
+            <option>Espumante Brut</option>
+          </select>
+        </div>
+        <div>
+          <label>Quantidade</label>
+          <input id="o_quantidade" type="number" min="1" value="1" />
+        </div>
+        <div>
+          <label>Valor unitário (R$)</label>
+          <input id="o_unitPrice" type="number" step="0.01" min="0" />
+        </div>
+        <div style="grid-column:1/-1">
+          <label>Observações</label>
+          <textarea id="o_observacoes" rows="3"></textarea>
+        </div>
+      </div>
+      <div style="display:flex; gap:8px; margin-top:12px;">
+        <button onclick="saveOrder()" class="btn-add">Salvar</button>
+        <button onclick="closeOrderModal()" style="background:#a60f2d;color:#fff;padding:8px 12px;border-radius:8px;border:0;cursor:pointer;">Cancelar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Transaction -->
+<div id="modalTx" class="modal">
+  <div class="modal-body">
+    <h3 id="modalTxTitle">Nova Transação</h3>
+    <div style="margin-top:8px;">
+      <div class="form-grid">
+        <input id="t_id" type="hidden" />
+        <div>
+          <label>Tipo</label>
+          <select id="t_type"><option value="entrada">Entrada</option><option value="saida">Saída</option></select>
+        </div>
+        <div>
+          <label>Valor (R$)</label>
+          <input id="t_amount" type="number" step="0.01" min="0" />
+        </div>
+        <div>
+          <label>Data</label>
+          <input id="t_date" type="datetime-local" />
+        </div>
+        <div style="grid-column:1/-1">
+          <label>Descrição</label>
+          <textarea id="t_description" rows="2"></textarea>
+        </div>
+      </div>
+      <div style="display:flex; gap:8px; margin-top:12px;">
+        <button onclick="saveTransaction()" class="btn-add">Salvar</button>
+        <button onclick="closeTransactionModal()" style="background:#a60f2d;color:#fff;padding:8px 12px;border-radius:8px;border:0;cursor:pointer;">Cancelar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Pega dados atuais
+  let visitantes = parseInt(localStorage.getItem("visitantes") || "0");
+  let interessados = parseInt(localStorage.getItem("interessados") || "0");
+  let vendas = parseInt(localStorage.getItem("vendas") || "0");
+
+  // Exibe dados na tela
+  document.getElementById("visitantes").textContent = visitantes;
+  document.getElementById("interessados").textContent = interessados;
+  document.getElementById("vendas").textContent = vendas;
+
+  // Função para registrar venda
+  function incrementVendas() {
+    vendas++;
+    localStorage.setItem("vendas", vendas);
+    document.getElementById("vendas").textContent = vendas;
+  }
+
+  // Função para resetar tudo
+  function resetContadores() {
+    visitantes = 0;
+    interessados = 0;
+    vendas = 0;
+
+    localStorage.setItem("visitantes", visitantes);
+    localStorage.setItem("interessados", interessados);
+    localStorage.setItem("vendas", vendas);
+
+    document.getElementById("visitantes").textContent = visitantes;
+    document.getElementById("interessados").textContent = interessados;
+    document.getElementById("vendas").textContent = vendas;
+  }
+
+
+
+  /* ---------- helpers storage ---------- */
+function getJSON(key){ try{ return JSON.parse(localStorage.getItem(key)||'[]'); }catch(e){ return []; } }
+function setJSON(key, arr){ localStorage.setItem(key, JSON.stringify(arr)); }
+function formatBRL(v){ return Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}); }
+function nowISO(){ return new Date().toISOString(); }
+
+/* ---------- load & render ---------- */
+function renderAll(){
+  renderOrders();
+  renderTransactions();
+  renderSummary();
+}
+
+/* ---------- ORDERS CRUD ---------- */
+function renderOrders(){
+  const tbody = document.querySelector('#ordersTable tbody');
+  tbody.innerHTML = '';
+  const orders = getJSON('orders');
+  orders.forEach(o => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${(new Date(o.createdAt)).toLocaleString()}</td>
+      <td>${o.nome || '-'}</td>
+      <td>${o.telefone || '-'}</td>
+      <td>${o.produto || '-'}</td>
+      <td>${o.quantidade || 0}</td>
+      <td>${formatBRL(o.total || 0)}</td>
+      <td class="actions">
+        <button class="btn-edit" onclick="editOrder('${o.id}')">Editar</button>
+        <button class="btn-delete" onclick="deleteOrder('${o.id}')">Excluir</button>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function openOrderModal(editData){
+  document.getElementById('modalOrder').style.display = 'flex';
+  if(editData){
+    document.getElementById('modalOrderTitle').textContent='Editar Pedido';
+    document.getElementById('o_id').value = editData.id;
+    document.getElementById('o_nome').value = editData.nome;
+    document.getElementById('o_telefone').value = editData.telefone;
+    document.getElementById('o_email').value = editData.email || '';
+    document.getElementById('o_produto').value = editData.produto;
+    document.getElementById('o_quantidade').value = editData.quantidade;
+    document.getElementById('o_unitPrice').value = editData.unitPrice;
+    document.getElementById('o_observacoes').value = editData.observacoes || '';
+  }else{
+    document.getElementById('modalOrderTitle').textContent='Novo Pedido';
+    document.getElementById('o_id').value = '';
+    document.getElementById('o_nome').value = '';
+    document.getElementById('o_telefone').value = '';
+    document.getElementById('o_email').value = '';
+    document.getElementById('o_produto').value = 'Vinho Tinto Reserva';
+    document.getElementById('o_quantidade').value = 1;
+    document.getElementById('o_unitPrice').value = '89.90';
+    document.getElementById('o_observacoes').value = '';
+  }
+}
+
+function closeOrderModal(){ document.getElementById('modalOrder').style.display='none'; }
+
+function saveOrder(){
+  const id = document.getElementById('o_id').value || ('order_'+Date.now());
+  const nome = document.getElementById('o_nome').value.trim();
+  const telefone = document.getElementById('o_telefone').value.trim();
+  const email = document.getElementById('o_email').value.trim();
+  const produto = document.getElementById('o_produto').value;
+  const quantidade = Math.max(1, parseInt(document.getElementById('o_quantidade').value)||1);
+  const unitPrice = parseFloat(document.getElementById('o_unitPrice').value) || 0;
+  const observacoes = document.getElementById('o_observacoes').value.trim();
+  const total = Number((quantidade * unitPrice).toFixed(2));
+  const createdAt = nowISO();
+
+  let orders = getJSON('orders');
+  const existingIndex = orders.findIndex(x=>x.id===id);
+  const orderObj = { id, nome, telefone, email, produto, quantidade, unitPrice, total, observacoes, createdAt };
+
+  if(existingIndex >= 0){
+    // update
+    orders[existingIndex] = orderObj;
+  } else {
+    // add new
+    orders.unshift(orderObj);
+
+    // when adding a sale via admin, also create a transaction entrada automatically
+    const txs = getJSON('transactions');
+    txs.unshift({ id:'tx_'+Date.now(), type:'entrada', amount: total, description:`Venda: ${produto} x${quantidade} - ${nome}`, date: createdAt });
+    setJSON('transactions', txs);
+
+    // increment vendas counter
+    const v = parseInt(localStorage.getItem('vendas')||'0') + 1;
+    localStorage.setItem('vendas', String(v));
+  }
+
+  setJSON('orders', orders);
+  closeOrderModal();
+  renderAll();
+}
+
+function editOrder(id){
+  const orders = getJSON('orders');
+  const o = orders.find(x=>x.id===id);
+  if(o) openOrderModal(o);
+}
+
+function deleteOrder(id){
+  if(!confirm('Deseja excluir este pedido?')) return;
+  let orders = getJSON('orders');
+  orders = orders.filter(x=>x.id!==id);
+  setJSON('orders', orders);
+  renderAll();
+}
+
+/* ---------- TRANSACTIONS CRUD ---------- */
+function renderTransactions(){
+  const tbody = document.querySelector('#transactionsTable tbody');
+  tbody.innerHTML = '';
+  const txs = getJSON('transactions');
+  txs.forEach(t => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${(new Date(t.date)).toLocaleString()}</td>
+      <td>${t.type==='entrada' ? 'Entrada' : 'Saída'}</td>
+      <td>${t.description || '-'}</td>
+      <td>${formatBRL(t.amount||0)}</td>
+      <td class="actions">
+        <button class="btn-edit" onclick="editTransaction('${t.id}')">Editar</button>
+        <button class="btn-delete" onclick="deleteTransaction('${t.id}')">Excluir</button>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function openTransactionModal(editData){
+  document.getElementById('modalTx').style.display='flex';
+  if(editData){
+    document.getElementById('modalTxTitle').textContent='Editar Transação';
+    document.getElementById('t_id').value = editData.id;
+    document.getElementById('t_type').value = editData.type;
+    document.getElementById('t_amount').value = editData.amount;
+    document.getElementById('t_description').value = editData.description;
+    // set date input value in local datetime format
+    const d = new Date(editData.date);
+    const isoLocal = new Date(d.getTime() - d.getTimezoneOffset()*60000).toISOString().slice(0,16);
+    document.getElementById('t_date').value = isoLocal;
+  } else {
+    document.getElementById('modalTxTitle').textContent='Nova Transação';
+    document.getElementById('t_id').value = '';
+    document.getElementById('t_type').value = 'entrada';
+    document.getElementById('t_amount').value = '';
+    document.getElementById('t_description').value = '';
+    document.getElementById('t_date').value = new Date().toISOString().slice(0,16);
+  }
+}
+
+function closeTransactionModal(){ document.getElementById('modalTx').style.display='none'; }
+
+function saveTransaction(){
+  const id = document.getElementById('t_id').value || ('tx_'+Date.now());
+  const type = document.getElementById('t_type').value;
+  const amount = Math.abs(parseFloat(document.getElementById('t_amount').value)||0);
+  const description = document.getElementById('t_description').value.trim();
+  const dateVal = document.getElementById('t_date').value;
+  const date = dateVal ? new Date(dateVal).toISOString() : nowISO();
+
+  let txs = getJSON('transactions');
+  const i = txs.findIndex(x=>x.id===id);
+  const obj = { id, type, amount, description, date };
+  if(i>=0) txs[i] = obj; else txs.unshift(obj);
+  setJSON('transactions', txs);
+  closeTransactionModal();
+  renderAll();
+}
+
+function editTransaction(id){
+  const txs = getJSON('transactions');
+  const t = txs.find(x=>x.id===id);
+  if(t) openTransactionModal(t);
+}
+
+function deleteTransaction(id){
+  if(!confirm('Excluir transação?')) return;
+  let txs = getJSON('transactions');
+  txs = txs.filter(x=>x.id!==id);
+  setJSON('transactions', txs);
+  renderAll();
+}
+
+/* ---------- SUMMARY CALCULATIONS ---------- */
+function renderSummary(){
+  const orders = getJSON('orders');
+  const txs = getJSON('transactions');
+
+  // helper: check date within period
+  const now = new Date();
+  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const startOfWeek = new Date(startOfDay); startOfWeek.setDate(startOfDay.getDate() - startOfDay.getDay()); // domingo
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const startOfYear = new Date(now.getFullYear(), 0, 1);
+
+  const sum = (arr)=> arr.reduce((s,x)=> s + (Number(x.amount||x.total||0)), 0);
+
+  // Sum orders totals by period
+  const ordersToday = orders.filter(o => new Date(o.createdAt) >= startOfDay);
+  const ordersWeek = orders.filter(o => new Date(o.createdAt) >= startOfWeek);
+  const ordersMonth = orders.filter(o => new Date(o.createdAt) >= startOfMonth);
+  const ordersYear = orders.filter(o => new Date(o.createdAt) >= startOfYear);
+
+  const vendasHoje = ordersToday.reduce((s,o)=> s + (o.total||0), 0);
+  const vendasSemana = ordersWeek.reduce((s,o)=> s + (o.total||0), 0);
+  const vendasMes = ordersMonth.reduce((s,o)=> s + (o.total||0), 0);
+  const vendasAno = ordersYear.reduce((s,o)=> s + (o.total||0), 0);
+
+  // transactions: entradas / saidas totals overall and by periods
+  const entradas = txs.filter(t => t.type==='entrada');
+  const saidas = txs.filter(t => t.type==='saida');
+
+  const totalEntradas = entradas.reduce((s,t)=> s + Number(t.amount||0), 0);
+  const totalSaidas = saidas.reduce((s,t)=> s + Number(t.amount||0), 0);
+  const saldo = totalEntradas - totalSaidas;
+
+  // update UI cards
+  document.getElementById('vendasHoje').textContent = formatBRL(vendasHoje);
+  document.getElementById('vendasSemana').textContent = formatBRL(vendasSemana);
+  document.getElementById('vendasMes').textContent = formatBRL(vendasMes);
+  document.getElementById('vendasAno').textContent = formatBRL(vendasAno);
+  document.getElementById('entradasTotal').textContent = formatBRL(totalEntradas);
+  document.getElementById('saidasTotal').textContent = formatBRL(totalSaidas);
+  document.getElementById('saldoTotal').textContent = formatBRL(saldo);
+}
+
+/* ---------- export / clear ---------- */
+function exportData(){
+  const data = {
+    orders: getJSON('orders'),
+    transactions: getJSON('transactions'),
+    counters: {
+      visitantes: localStorage.getItem('visitantes')||0,
+      interessados: localStorage.getItem('interessados')||0,
+      vendas: localStorage.getItem('vendas')||0
+    }
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'vinhos_data_export_'+Date.now()+'.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function clearAll(){
+  if(!confirm('Confirma limpar TODAS as ordens, transações e contadores?')) return;
+  localStorage.removeItem('orders');
+  localStorage.removeItem('transactions');
+  localStorage.setItem('visitantes','0');
+  localStorage.setItem('interessados','0');
+  localStorage.setItem('vendas','0');
+  renderAll();
+}
+
+/* ---------- init ---------- */
+renderAll();
+
+/* Make modals closable by background click */
+document.querySelectorAll('.modal').forEach(m=>{
+  m.addEventListener('click', (e)=> {
+    if(e.target===m){ m.style.display='none'; }
+  });
+});
+</script>
+
+</body>
+</html>
